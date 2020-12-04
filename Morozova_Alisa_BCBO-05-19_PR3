@@ -1,0 +1,130 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+using System.Threading;
+
+namespace OC_3
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            MyQueue.FillQueue();
+            Menu.Start();
+            
+        }
+    }
+    
+    public static class MyQueue
+    {
+        public static Queue<int> Queue = new Queue<int>(200);
+        public static int SIZE = 200;
+
+        public static void FillQueue()
+        {
+            for (int i = 0; i < SIZE; i++)
+            {
+                Queue.Enqueue(i);
+            }
+        }
+        
+        public static void ShowQueue()
+        {
+            foreach (var q in Queue)
+            {
+                Console.WriteLine(q);
+            }
+        }
+    }
+
+    public class Generator
+    {
+        private static Random _random;
+
+        public void Generate()
+        {
+            _random = new Random();
+
+            while (Menu.InMenu)
+            {
+                if (MyQueue.Queue.Count <= 80)
+                {
+                    Console.WriteLine("Queue count <= 80 ... Generator started.");
+                    lock (MyQueue.Queue)
+                    {
+                        while (MyQueue.Queue.Count <= MyQueue.SIZE)
+                        {
+                            int next = _random.Next(100);
+                            MyQueue.Queue.Enqueue(next);
+                            Console.WriteLine("Added: "+ next);
+                            Thread.Sleep(100);
+                        }
+                        Console.WriteLine("Generator finished work.");
+                    }
+                } 
+                Thread.Sleep(250);
+            }
+        }
+    }
+
+    public class Consumer
+    {
+        public void Consume()
+        {
+            while (true)
+            {
+                lock (MyQueue.Queue)
+                {
+                    if (MyQueue.Queue.Count >0)
+                    {
+                        Console.WriteLine("Consumed: "+ MyQueue.Queue.Dequeue());
+                    }
+                    else
+                    {
+                        Console.WriteLine("Queue count = 0. Consumer is stopping...");
+                        break;   
+                    }
+                }
+                Thread.Sleep(250);
+            }
+        }
+    }
+
+
+    public class Menu
+    {
+        public static bool InMenu = true;
+
+        public static void Start()
+        {
+            new Thread(() =>
+            {
+                for (;;) if (Console.ReadKey(true).Key == ConsoleKey.Q)
+                    {
+                        InMenu = false;
+                        Console.WriteLine("Program will shutdown after consumers finish work");
+                    }
+            }){IsBackground = true}.Start();
+            
+            Generator g1 = new Generator();
+            Generator g2 = new Generator();
+            Generator g3 = new Generator();
+            Consumer c1 = new Consumer();
+            Consumer c2 = new Consumer();
+            
+            Thread tGen1 = new Thread(g1.Generate);
+            Thread tGen2 = new Thread(g2.Generate);
+            Thread tGen3 = new Thread(g3.Generate);
+            Thread tCons1 = new Thread(c1.Consume);
+            Thread tCons2 = new Thread(c2.Consume);
+            
+            tCons1.Start();
+            tCons2.Start();
+            tGen1.Start();
+            tGen2.Start();
+            tGen3.Start();
+            
+        }
+    }
+}
